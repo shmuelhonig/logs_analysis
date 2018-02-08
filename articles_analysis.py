@@ -3,6 +3,60 @@
 import psycopg2
 import datetime
 
+views = [
+    '''CREATE VIEW article_views as
+      SELECT "path", count(*) as views
+      FROM log
+      GROUP BY "path";''',
+
+    '''CREATE VIEW popularity_by_title as
+      SELECT title, views
+      FROM articles JOIN article_views
+      on article_views.path LIKE ('%' || articles.slug)
+      ORDER BY views DESC;''',
+
+    '''CREATE VIEW articles_and_authors as
+      SELECT name, title
+      FROM articles JOIN authors
+      on articles.author = authors.id;''',
+
+    '''CREATE VIEW status_date_stamp as
+      SELECT status, cast("time" as date) as "date"
+      FROM log;''',
+
+    '''CREATE VIEW errors_by_date as
+      SELECT "date", count(status) as errors
+      FROM status_date_stamp
+      WHERE status NOT LIKE '%OK%'
+      GROUP BY "date"
+      ORDER BY "date";''',
+
+    '''CREATE VIEW requests_by_date as
+      SELECT "date", count(status) as num
+      FROM status_date_stamp
+      GROUP BY "date"
+      ORDER BY "date";''',
+
+    '''CREATE VIEW raw_error_rates as
+      SELECT E.date,
+      (cast(E.errors as decimal)/cast(R.num as decimal)) as error_rate
+      FROM errors_by_date as E JOIN requests_by_date as R
+      on E.date = R.date;'''
+]
+
+
+def create_views(new_views):
+    try:
+        conn = psycopg2.connect(dbname="news")
+        cursor = conn.cursor()
+        for view in new_views:
+            cursor.execute(view)
+            conn.commit()
+        conn.close()
+    except psycopg2.Error as error:
+        print error
+        sys.exit(1)
+
 
 def fetch_data(query):
     '''
@@ -33,6 +87,7 @@ high_error_days = '''SELECT "date",
                    from raw_error_rates
                    where error_rate*100 > 1;'''
 
+
 def top_articles():
     results = fetch_data(top_three_articles)
     print "\nThe top 3 most popular articles are:\n"
@@ -40,12 +95,14 @@ def top_articles():
         print '\"{}\" - {} views'.format(title, views)
     print
 
+
 def top_authors():
     results = fetch_data(author_popularity)
     print "\nTotal views by author:\n"
     for name, total_views in results:
         print '{} - {} views'.format(name, total_views)
     print
+
 
 def high_error_rates():
     results = fetch_data(high_error_days)
@@ -56,6 +113,7 @@ def high_error_rates():
     print
 
 if __name__ == '__main__':
+    create_views(views)
     top_articles()
     top_authors()
     high_error_rates()
