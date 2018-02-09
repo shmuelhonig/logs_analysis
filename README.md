@@ -14,12 +14,11 @@ The following steps are necessary to successfully run the program:
 2. Using the command line, launch psql and create a database 'news'
 3. Download this [file](https://d17h27t6h515a5.cloudfront.net/topher/2016/August/57b5f748_newsdata/newsdata.zip), which contains the schema and data for the 'news' database (created by Udacity instructors)
 4. After unzipping the file, import 'newsdata.sql' into the 'news' database
-5. Connect to the 'news' database and create the views listed below
-6. Exit psql and run the python file 'articles_analysis.py' (python 2.7 is required to run the program)
+5. Exit psql and run the python file 'articles_analysis.py' (python 2.7 is required to run the program)
 
 ## The Database
 
-The database consists of the following tables and their corresponding columns:
+The database consists of the following tables and their corresponding columns (created by Udacity instructors):
 
 articles (table):
 - author (int)
@@ -42,48 +41,3 @@ log (table):
 - status (text)
 - time (timestamp with time zone)
 - id (int)
-
-## Utilization of Views
-
-The SQL queries used in the python file are built upon several views that have been created in the database as part of this project. To successfully run the program, these views must first be inserted into the database:
-
-```sql
-CREATE VIEW article_views as
-  SELECT "path", count(*) as views
-  FROM log
-  GROUP BY "path";
-
-CREATE VIEW popularity_by_title as
-  SELECT title, views
-  FROM articles JOIN article_views
-  on article_views.path LIKE ('%' || articles.slug)
-  ORDER BY views DESC;
-
-CREATE VIEW articles_and_authors as
-  SELECT name, title
-  FROM articles JOIN authors
-  on articles.author = authors.id;
-
-CREATE VIEW status_date_stamp as
-  SELECT status, cast("time" as date) as "date"
-  FROM log;
-
-CREATE VIEW errors_by_date as
-  SELECT "date", count(status) as errors
-  FROM status_date_stamp
-  WHERE status NOT LIKE '%OK%'
-  GROUP BY "date"
-  ORDER BY "date";
-
-CREATE VIEW requests_by_date as
-  SELECT "date", count(status) as num
-  FROM status_date_stamp
-  GROUP BY "date"
-  ORDER BY "date";
-
-CREATE VIEW raw_error_rates as
-  SELECT E.date,
-  (cast(E.errors as decimal)/cast(R.num as decimal)) as error_rate
-  FROM errors_by_date as E JOIN requests_by_date as R
-  on E.date = R.date;
- ```
