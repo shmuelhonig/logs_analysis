@@ -3,6 +3,8 @@
 import psycopg2
 import datetime
 
+# List of views to be added to database to allow for queries targeting
+# requested data
 views = [
     '''CREATE or REPLACE VIEW article_views as
       SELECT "path", count(*) as views
@@ -46,6 +48,7 @@ views = [
 
 
 def create_views(new_views):
+    '''Create views and commit them to the database'''
     try:
         conn = psycopg2.connect(dbname="news")
         cursor = conn.cursor()
@@ -59,9 +62,7 @@ def create_views(new_views):
 
 
 def fetch_data(query):
-    '''
-    Connect to 'news' database and print results of SQL queries
-    '''
+    '''Connect to 'news' database and print results of SQL queries'''
     try:
         conn = psycopg2.connect(dbname="news")
         cursor = conn.cursor()
@@ -73,6 +74,7 @@ def fetch_data(query):
         print error
         sys.exit(1)
 
+# Queries for extracting requested data
 top_three_articles = "SELECT * FROM popularity_by_title LIMIT 3;"
 
 author_popularity = '''SELECT name, sum(views) as total_views
@@ -89,6 +91,7 @@ high_error_days = '''SELECT "date",
 
 
 def top_articles():
+    '''Print names of top three most popular articles by page views'''
     results = fetch_data(top_three_articles)
     print "\nThe top 3 most popular articles are:\n"
     for title, views in results:
@@ -97,6 +100,7 @@ def top_articles():
 
 
 def top_authors():
+    '''Print names of most popular authors'''
     results = fetch_data(author_popularity)
     print "\nTotal views by author:\n"
     for name, total_views in results:
@@ -105,6 +109,7 @@ def top_authors():
 
 
 def high_error_rates():
+    '''Print dates on which error rate was greater than 1%'''
     results = fetch_data(high_error_days)
     print "\nDates with an error rate greater than 1%:\n"
     for date, rounded_error_rate in results:
