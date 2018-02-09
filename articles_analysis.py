@@ -2,6 +2,7 @@
 
 import psycopg2
 import datetime
+import sys
 
 # List of views to be added to database to allow for queries targeting
 # requested data
