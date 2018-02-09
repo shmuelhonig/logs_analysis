@@ -4,40 +4,40 @@ import psycopg2
 import datetime
 
 views = [
-    '''CREATE VIEW article_views as
+    '''CREATE or REPLACE VIEW article_views as
       SELECT "path", count(*) as views
       FROM log
       GROUP BY "path";''',
 
-    '''CREATE VIEW popularity_by_title as
+    '''CREATE or REPLACE VIEW popularity_by_title as
       SELECT title, views
       FROM articles JOIN article_views
       on article_views.path LIKE ('%' || articles.slug)
       ORDER BY views DESC;''',
 
-    '''CREATE VIEW articles_and_authors as
+    '''CREATE or REPLACE VIEW articles_and_authors as
       SELECT name, title
       FROM articles JOIN authors
       on articles.author = authors.id;''',
 
-    '''CREATE VIEW status_date_stamp as
+    '''CREATE or REPLACE VIEW status_date_stamp as
       SELECT status, cast("time" as date) as "date"
       FROM log;''',
 
-    '''CREATE VIEW errors_by_date as
+    '''CREATE or REPLACE VIEW errors_by_date as
       SELECT "date", count(status) as errors
       FROM status_date_stamp
       WHERE status NOT LIKE '%OK%'
       GROUP BY "date"
       ORDER BY "date";''',
 
-    '''CREATE VIEW requests_by_date as
+    '''CREATE or REPLACE VIEW requests_by_date as
       SELECT "date", count(status) as num
       FROM status_date_stamp
       GROUP BY "date"
       ORDER BY "date";''',
 
-    '''CREATE VIEW raw_error_rates as
+    '''CREATE or REPLACE VIEW raw_error_rates as
       SELECT E.date,
       (cast(E.errors as decimal)/cast(R.num as decimal)) as error_rate
       FROM errors_by_date as E JOIN requests_by_date as R
@@ -73,19 +73,19 @@ def fetch_data(query):
         print error
         sys.exit(1)
 
-top_three_articles = "SELECT * from popularity_by_title limit 3;"
+top_three_articles = "SELECT * FROM popularity_by_title LIMIT 3;"
 
 author_popularity = '''SELECT name, sum(views) as total_views
-                     from articles_and_authors as A
-                     join popularity_by_title as P
+                     FROM articles_and_authors as A
+                     JOIN popularity_by_title as P
                      on A.title = P.title
-                     group by name
-                     order by total_views desc;'''
+                     GROUP BY name
+                     ORDER BY total_views DESC;'''
 
 high_error_days = '''SELECT "date",
                    cast(error_rate*100 as decimal(4,2)) as rounded_error_rate
-                   from raw_error_rates
-                   where error_rate*100 > 1;'''
+                   FROM raw_error_rates
+                   WHERE error_rate*100 > 1;'''
 
 
 def top_articles():
